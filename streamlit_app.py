@@ -11,12 +11,12 @@ import numpy as np
 st.set_page_config(layout="wide", page_title="County Analytics Dashboard")
 
 # Load data
-df = pd.read_excel("feature_Data.xlsx")
+df = pd.read_excel("./feature_Data.xlsx")
 for col in ['Expenditures', 'Revenues', 'Indebtedness']:
     df[col] = df[col].replace('[\$,]', '', regex=True).astype(float)
 df['GeoFIPS'] = df['GeoFIPS'].astype(str).str.zfill(5)
 
-df_sankey = pd.read_csv("layer_score.csv")
+df_sankey = pd.read_csv("./layer_score.csv")
 df_sankey.columns = [col.strip() for col in df_sankey.columns]
 df_sankey = df_sankey.rename(columns={"normalized_name": "City"})
 
@@ -99,7 +99,7 @@ tab1, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs([
     "\U0001F4C8 Climate vs Non-Climate Boxplots",
     "\U0001F4C8 Demographic",
     "\U0001F4C8 Feature Score Analysis",
-    "\U0001F4C8 Skokie & Niles Highlight"
+    "\U0001F4C8 Skokie & Naperville Highlight"
 ])
 
 # === Tab 1 ===
@@ -109,41 +109,27 @@ with tab1:
 
     col1, col2 = st.columns([2, 3])
     with col1:
-        selected_feature = st.selectbox(
-            "Select a Feature", 
-            ['Revenues', 'Expenditures', 'Indebtedness', 'median_income']
-        )
+        selected_feature = st.selectbox("Select a Feature", ['Revenues', 'Expenditures', 'Indebtedness', 'median_income'])
     with col2:
-        selected_county = st.selectbox(
-            "Select a County", 
-            sorted(df['County'].unique())
-        )
+        selected_county = st.selectbox("Select a County", sorted(df['County'].unique()))
 
-    summary = df.groupby("County")[selected_feature].agg(
-        ['median', lambda x: x.max() - x.min()]
-    ).reset_index()
+    summary = df.groupby("County")[selected_feature].agg(['median', lambda x: x.max() - x.min()]).reset_index()
     summary.columns = ['County', 'Median', 'Range']
-    summary['GeoFIPS'] = summary['County'].map(
-        lambda x: df[df['County'] == x]['GeoFIPS'].iloc[0]
-    )
+    summary['GeoFIPS'] = summary['County'].map(lambda x: df[df['County'] == x]['GeoFIPS'].iloc[0])
     selected_fips = summary[summary['County'] == selected_county]['GeoFIPS'].values[0]
 
     col_map1, col_map2 = st.columns(2)
     with col_map1:
         st.subheader(f"\U0001F5FA Median {selected_feature}")
         with st.expander("View Median Map", expanded=True):
-            median_map = create_single_county_map(
-                summary, 'Median', f"Median {selected_feature}", selected_fips
-            )
-            folium_static(median_map, width=500, height=350)
+            median_map = create_single_county_map(summary, 'Median', f"Median {selected_feature}", selected_fips)
+            folium_static(median_map)
 
     with col_map2:
         st.subheader(f"\U0001F5FA Range of {selected_feature}")
         with st.expander("View Range Map", expanded=True):
-            range_map = create_single_county_map(
-                summary, 'Range', f"Range of {selected_feature}", selected_fips
-            )
-            folium_static(range_map, width=500, height=350)
+            range_map = create_single_county_map(summary, 'Range', f"Range of {selected_feature}", selected_fips)
+            folium_static(range_map)
 
     # Add Plotly Choropleth
     with st.expander("View Interactive Choropleth (Plotly)", expanded=False):
@@ -274,7 +260,7 @@ with tab1:
 with tab4:
     st.header("\U0001F4CA Box & Whisker Plots by Feature Clusters")
 
-    df_plot = pd.read_csv("layer_score.csv")
+    df_plot = pd.read_csv("./layer_score.csv")
     for col in ['Revenues', 'Expenditures', 'Indebtedness', 'median_income']:
         if df_plot[col].dtype == object:
             df_plot[col] = df_plot[col].replace('[\$,]', '', regex=True).astype(float)
@@ -312,7 +298,7 @@ with tab5:
     st.header("📝 City Score Comparison by Report Category")
 
     # Load data
-    df_city = pd.read_csv("layer_score.csv")
+    df_city = pd.read_csv("./layer_score.csv")
     df_city.columns = df_city.columns.str.strip()
 
     # Clean Report Type 1 column (remove trailing spaces)
@@ -413,7 +399,7 @@ with tab6:
     st.header("📦 Report Type vs Feature Score Distribution")
 
     # Load and clean data
-    df_box = pd.read_csv("layer_score.csv")
+    df_box = pd.read_csv("./layer_score.csv")
     df_box.columns = df_box.columns.str.strip()
     df_box["Report Type"] = df_box["Report Type"].str.strip()
 
@@ -547,15 +533,26 @@ with tab6:
     )
     st.plotly_chart(fig_total_combined, use_container_width=True)
 
-# === Top Quartile ===
-    st.header("🏙️ Top Quartile Cities – Climate-Related Plans Only")
+    # === Top Quartile ===
+    st.header("🏙️ Top Quartile Cities  Climate-Related Plans Only")
 
-    df_climate = df_box[df_box["Report Type Modified"] == "Climate-Related Plans"].copy()
-    df_climate = df_climate.dropna(subset=score_cols + ["normalized_name"])
+    # Filter to only Climate-related cities based on Report Type 1
+    df_climate = df_box[df_box["Report Type 1"].str.strip().str.lower() == "climate"].copy()
 
+    # Convert demographic fields
+    df_climate["median_income"] = pd.to_numeric(df_climate["median_income"].replace('[\$,]', '', regex=True), errors="coerce")
+    df_climate["population"] = pd.to_numeric(df_climate["population"], errors="coerce")
+    df_climate["Local taxes"] = pd.to_numeric(df_climate["Local taxes"].replace('[\$,]', '', regex=True), errors="coerce")
+    df_climate["taxes_per_capita"] = df_climate["Local taxes"] / df_climate["population"]
+
+    # Drop rows with missing required data
+    df_climate = df_climate.dropna(subset=score_cols + ["normalized_name", "median_income", "population", "taxes_per_capita"])
+
+    # Identify top quartile cities by Total Score
     top_quartile_threshold = df_climate["Total Score"].quantile(0.75)
     df_top = df_climate[df_climate["Total Score"] >= top_quartile_threshold]
 
+    # === Feature Score Box Plot ===
     df_top_melted = df_top.melt(
         id_vars=["normalized_name"],
         value_vars=score_cols[:-1],
@@ -604,6 +601,7 @@ with tab6:
     )
     st.plotly_chart(fig_features, use_container_width=True)
 
+    # === Total Score Plot ===
     fig_top_total = px.box(
         df_top,
         y="Total Score",
@@ -624,7 +622,7 @@ with tab7:
     st.header("🏙️ City Score Comparison - Climate vs Non-Climate")
 
     # Load and clean data
-    df_city = pd.read_csv("layer_score.csv")
+    df_city = pd.read_csv("./layer_score.csv")
     df_city.columns = df_city.columns.str.strip()
     df_city["Report Type 1"] = df_city["Report Type 1"].str.strip()
 
@@ -707,7 +705,7 @@ with tab7:
 with tab8:
     st.header("🏙️ Feature Comparison by Report Type")
 
-    df = pd.read_csv("layer_score.csv")
+    df = pd.read_csv("./layer_score.csv")
     df.columns = df.columns.str.strip()
     df["Report Type 1"] = df["Report Type 1"].str.strip()
     df["normalized_name"] = df["normalized_name"].str.strip()
@@ -745,16 +743,19 @@ with tab8:
                 st.plotly_chart(fig, use_container_width=True)
 with tab9:
 
-    st.subheader("📊 Demographics – Top Quartile Cities (Side-by-Side Comparison)")
+    st.subheader("📊 Demographics – Top Quartile Climate Cities (Side-by-Side Comparison)")
 
     import pandas as pd
     import plotly.express as px
     import streamlit as st
 
     # Load and clean data
-    df = pd.read_csv("layer_score.csv")
+    df = pd.read_csv("./layer_score.csv")
     df.columns = df.columns.str.strip()
     df = df[df["normalized_name"].str.lower() != "chicago"]
+
+    # Filter to Climate cities only
+    df = df[df["Report Type 1"].str.lower() == "climate"]
 
     # Convert fields
     df["median_income"] = pd.to_numeric(df["median_income"].replace('[\$,]', '', regex=True), errors="coerce")
@@ -766,11 +767,11 @@ with tab9:
     # Drop missing data
     df = df.dropna(subset=["median_income", "population", "taxes_per_capita", "Total Score"])
 
-    # Filter to top quartile by Total Score
+    # Filter to top quartile by Total Score (within Climate cities)
     q3 = df["Total Score"].quantile(0.75)
     df_top = df[df["Total Score"] >= q3].copy()
 
-    # Median values from full dataset
+    # Median values from all Climate cities
     medians = {
         "Median Income": df["median_income"].median(),
         "Population": df["population"].median(),
@@ -835,10 +836,10 @@ with tab9:
         st.plotly_chart(create_box("taxes_per_capita", "Taxes Per Capita"), use_container_width=True)
 
 with tab10:
-    st.header("🌍 Climate Report Type – Skokie & Niles Highlighted")
+    st.header("🌍 Climate Report Type – Skokie & Naperville Highlighted")
 
     # Load and clean data
-    df = pd.read_csv("layer_score.csv")
+    df = pd.read_csv("./layer_score.csv")
     df.columns = df.columns.str.strip()
     df["Report Type 1"] = df["Report Type 1"].str.strip()
     df["normalized_name"] = df["normalized_name"].str.strip()
@@ -852,8 +853,8 @@ with tab10:
     df = df[df["Report Type 1"] == "Climate"]
     df = df.dropna(subset=score_cols + ["normalized_name"])
 
-    target_cities = {"Skokie": "red", "Niles": "blue"}
-    st.subheader("📈 Score Distributions – Skokie & Niles Highlighted")
+    target_cities = {"Skokie": "red", "Naperville": "blue"}
+    st.subheader("📈 Score Distributions – Skokie & Naperville Highlighted")
 
     col1, col2 = st.columns(2)
     for i, score in enumerate(score_cols):
@@ -879,21 +880,22 @@ with tab10:
             )
             st.plotly_chart(fig, use_container_width=True)
 
-    st.subheader("📊 Demographic & Financial Feature Distributions – Skokie & Niles")
+    st.subheader("📊 Demographic & Financial Feature Distributions – Skokie & Naperville")
 
     # Convert fields
-    df["median_income"] = pd.to_numeric(df["median_income"].replace('[\$,]', '', regex=True), errors="coerce")
+    df["median_income.1"] = pd.to_numeric(df["median_income.1"].replace('[\$,]', '', regex=True), errors="coerce")
     df["Local taxes"] = pd.to_numeric(df["Local taxes"].replace('[\$,]', '', regex=True), errors="coerce")
     df["population"] = pd.to_numeric(df["population"], errors="coerce")
     df["taxes_per_capita"] = df["Local taxes"] / df["population"]
 
-    demo_vars = ["population", "median_income", "Local taxes", "taxes_per_capita"]
+    demo_vars = ["population", "median_income.1", "Local taxes", "taxes_per_capita"]
     demo_labels = {
         "population": "Population",
-        "median_income": "Median Income",
+        "median_income.1": "Median Income",
         "Local taxes": "Local Taxes",
         "taxes_per_capita": "Taxes Per Capita"
     }
+
 
     df = df.dropna(subset=demo_vars)
 
@@ -920,7 +922,7 @@ with tab10:
                 )
             )
             st.plotly_chart(fig, use_container_width=True)
-    st.subheader("📈 Combined Score Distribution – Skokie & Niles Highlighted")
+    st.subheader("📈 Combined Score Distribution – Skokie & Naperville Highlighted")
 
     # Melt the dataframe to long format
     df_melted = df.melt(
@@ -940,7 +942,7 @@ with tab10:
         title="Governance, Data & Analytics, Action Planning – Combined Violin Plot"
     )
 
-    # Add Skokie and Niles lines
+    # Add Skokie and Naperville lines
     for city, color in target_cities.items():
         for feature in ["Governance", "Data and Analytics", "Action Planning"]:
             city_val = df.loc[df["normalized_name"].str.lower() == city.lower(), feature]
@@ -980,4 +982,86 @@ with tab10:
     )
 
     st.plotly_chart(fig, use_container_width=True)
+
+    import pandas as pd
+import plotly.express as px
+import streamlit as st
+
+# Load and prepare data
+df = pd.read_csv("./layer_score.csv")
+df.columns = df.columns.str.strip()
+df = df[df["Report Type 1"].str.strip().str.lower() == "climate"]
+df["normalized_name"] = df["normalized_name"].str.strip()
+score_features = ["Governance", "Data and Analytics", "Action Planning"]
+
+for col in score_features:
+    df[col] = pd.to_numeric(df[col], errors="coerce")
+
+df = df.dropna(subset=["normalized_name"] + score_features)
+
+# Target cities to highlight
+target_cities = {"Skokie": "red", "Naperville": "blue"}
+
+# Melt the dataframe to long format
+df_melted = df.melt(
+    id_vars=["normalized_name"],
+    value_vars=score_features,
+    var_name="Feature",
+    value_name="Score"
+)
+
+# Create violin plot
+fig = px.violin(
+    df_melted,
+    x="Feature",
+    y="Score",
+    box=True,
+    points="all",
+    hover_data=["normalized_name"],
+    title="Governance, Data & Analytics, Action Planning – Combined Violin Plot"
+)
+
+# Add lines for Skokie & Naperville
+for city, color in target_cities.items():
+    for feature in score_features:
+        city_val = df.loc[df["normalized_name"].str.lower() == city.lower(), feature]
+        if not city_val.empty:
+            val = city_val.values[0]
+            fig.add_shape(
+                type="line",
+                x0=feature,
+                x1=feature,
+                y0=val,
+                y1=val,
+                xref='x',
+                yref='y',
+                line=dict(color=color, dash="dash")
+            )
+            fig.add_annotation(
+                x=feature,
+                y=val,
+                text=f"{city}: {val:.1f}",
+                showarrow=True,
+                arrowhead=1,
+                yshift=10,
+                font=dict(color=color)
+            )
+
+# Final layout
+fig.update_layout(
+    yaxis=dict(
+        title=dict(text="Score", font=dict(color="black")),
+        tickfont=dict(color="black"),
+        linecolor="black"
+    ),
+    xaxis=dict(
+        title=dict(text="Feature", font=dict(color="black")),
+        tickfont=dict(color="black"),
+        linecolor="black"
+    )
+)
+
+# Show in Streamlit
+st.plotly_chart(fig, use_container_width=True)
+
 
