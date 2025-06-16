@@ -135,7 +135,7 @@ with tab1:
             median_map = create_single_county_map(
                 summary, 'Median', f"Median {selected_feature}", selected_fips
             )
-            folium_static(median_map, width=600, height=400)
+            folium_static(median_map, width=500, height=350)
 
     with col_map2:
         st.subheader(f"\U0001F5FA Range of {selected_feature}")
@@ -143,7 +143,7 @@ with tab1:
             range_map = create_single_county_map(
                 summary, 'Range', f"Range of {selected_feature}", selected_fips
             )
-            folium_static(range_map, width=600, height=400)
+            folium_static(range_map, width=500, height=350)
 
     # Add Plotly Choropleth
     with st.expander("View Interactive Choropleth (Plotly)", expanded=False):
