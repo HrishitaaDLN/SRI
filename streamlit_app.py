@@ -130,6 +130,30 @@ with tab1:
         with st.expander("View Range Map", expanded=True):
             range_map = create_single_county_map(summary, 'Range', f"Range of {selected_feature}", selected_fips)
             folium_static(range_map)
+    def create_single_county_map(data, column, legend_name, selected_fips):
+    m = folium.Map(location=[40.0, -89.0], zoom_start=6, tiles='cartodbpositron', width=500, height=350)
+    value = data[data['GeoFIPS'] == selected_fips][column].values[0]
+    max_val = data[column].max()
+    colormap = cm.linear.YlOrRd_09.scale(0, max_val)
+    fill_color = colormap(value)
+
+    for feature in geojson['features']:
+        if feature['id'] == str(selected_fips):
+            folium.GeoJson(
+                feature,
+                style_function=lambda x: {
+                    'fillColor': fill_color,
+                    'color': 'black',
+                    'weight': 2,
+                    'fillOpacity': 0.8
+                },
+                tooltip=f"{legend_name}: {value}"
+            ).add_to(m)
+
+    colormap.caption = legend_name
+    colormap.add_to(m)
+    return m
+
 
     # Add Plotly Choropleth
     with st.expander("View Interactive Choropleth (Plotly)", expanded=False):
