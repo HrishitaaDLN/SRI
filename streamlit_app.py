@@ -109,27 +109,41 @@ with tab1:
 
     col1, col2 = st.columns([2, 3])
     with col1:
-        selected_feature = st.selectbox("Select a Feature", ['Revenues', 'Expenditures', 'Indebtedness', 'median_income'])
+        selected_feature = st.selectbox(
+            "Select a Feature", 
+            ['Revenues', 'Expenditures', 'Indebtedness', 'median_income']
+        )
     with col2:
-        selected_county = st.selectbox("Select a County", sorted(df['County'].unique()))
+        selected_county = st.selectbox(
+            "Select a County", 
+            sorted(df['County'].unique())
+        )
 
-    summary = df.groupby("County")[selected_feature].agg(['median', lambda x: x.max() - x.min()]).reset_index()
+    summary = df.groupby("County")[selected_feature].agg(
+        ['median', lambda x: x.max() - x.min()]
+    ).reset_index()
     summary.columns = ['County', 'Median', 'Range']
-    summary['GeoFIPS'] = summary['County'].map(lambda x: df[df['County'] == x]['GeoFIPS'].iloc[0])
+    summary['GeoFIPS'] = summary['County'].map(
+        lambda x: df[df['County'] == x]['GeoFIPS'].iloc[0]
+    )
     selected_fips = summary[summary['County'] == selected_county]['GeoFIPS'].values[0]
 
     col_map1, col_map2 = st.columns(2)
     with col_map1:
         st.subheader(f"\U0001F5FA Median {selected_feature}")
         with st.expander("View Median Map", expanded=True):
-            median_map = create_single_county_map(summary, 'Median', f"Median {selected_feature}", selected_fips)
-            folium_static(median_map)
+            median_map = create_single_county_map(
+                summary, 'Median', f"Median {selected_feature}", selected_fips
+            )
+            folium_static(median_map, width=600, height=400)
 
     with col_map2:
         st.subheader(f"\U0001F5FA Range of {selected_feature}")
         with st.expander("View Range Map", expanded=True):
-            range_map = create_single_county_map(summary, 'Range', f"Range of {selected_feature}", selected_fips)
-            folium_static(range_map)
+            range_map = create_single_county_map(
+                summary, 'Range', f"Range of {selected_feature}", selected_fips
+            )
+            folium_static(range_map, width=600, height=400)
 
     # Add Plotly Choropleth
     with st.expander("View Interactive Choropleth (Plotly)", expanded=False):
