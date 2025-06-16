@@ -260,7 +260,7 @@ with tab1:
 with tab4:
     st.header("\U0001F4CA Box & Whisker Plots by Feature Clusters")
 
-    df_plot = pd.read_csv("C:Users/Admin/Downloads/layer_score.csv")
+    df_plot = pd.read_csv("layer_score.csv")
     for col in ['Revenues', 'Expenditures', 'Indebtedness', 'median_income']:
         if df_plot[col].dtype == object:
             df_plot[col] = df_plot[col].replace('[\$,]', '', regex=True).astype(float)
