@@ -30,6 +30,31 @@ geojson = {
     "features": [f for f in full_geojson['features'] if f['id'].startswith("17")]
 }
 
+# Function: Folium single-county map
+def create_single_county_map(data, column, legend_name, selected_fips):
+    m = folium.Map(location=[40.0, -89.0], zoom_start=6, tiles='cartodbpositron')
+    value = data[data['GeoFIPS'] == selected_fips][column].values[0]
+    max_val = data[column].max()
+    colormap = cm.linear.YlOrRd_09.scale(0, max_val)
+    fill_color = colormap(value)
+
+    for feature in geojson['features']:
+        if feature['id'] == str(selected_fips):
+            folium.GeoJson(
+                feature,
+                style_function=lambda x: {
+                    'fillColor': fill_color,
+                    'color': 'black',
+                    'weight': 2,
+                    'fillOpacity': 0.8
+                },
+                tooltip=f"{legend_name}: {value}"
+            ).add_to(m)
+
+    colormap.caption = legend_name
+    colormap.add_to(m)
+    return m
+
 # Function: Plotly Illinois choropleth
 def make_il_county_choropleth(input_df, input_fips_col, input_value_col, input_color_theme):
     geojson_url = "https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json"
@@ -106,32 +131,6 @@ with tab1:
             range_map = create_single_county_map(summary, 'Range', f"Range of {selected_feature}", selected_fips)
             folium_static(range_map)
 
-    
-def create_single_county_map(data, column, legend_name, selected_fips):
-    m = folium.Map(location=[40.0, -89.0], zoom_start=6, tiles='cartodbpositron', width=500, height=350)
-    value = data[data['GeoFIPS'] == selected_fips][column].values[0]
-    max_val = data[column].max()
-    colormap = cm.linear.YlOrRd_09.scale(0, max_val)
-    fill_color = colormap(value)
-
-    for feature in geojson['features']:
-        if feature['id'] == str(selected_fips):
-            folium.GeoJson(
-                feature,
-                style_function=lambda x: {
-                    'fillColor': fill_color,
-                    'color': 'black',
-                    'weight': 2,
-                    'fillOpacity': 0.8
-                },
-                tooltip=f"{legend_name}: {value}"
-            ).add_to(m)
-
-    colormap.caption = legend_name
-    colormap.add_to(m)
-    return m
-
-
     # Add Plotly Choropleth
     with st.expander("View Interactive Choropleth (Plotly)", expanded=False):
         choropleth_type = st.radio("Select Choropleth Type", ["Median", "Range"], horizontal=True)
@@ -144,6 +143,7 @@ def create_single_county_map(data, column, legend_name, selected_fips):
             input_color_theme="Viridis"
         )
         st.plotly_chart(choropleth_plotly, use_container_width=True)
+
 
 # # === Tab 2–4 unchanged ===
 # # You already have working code for Sankey and box plots in tabs 2–4.
