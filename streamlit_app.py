@@ -16,7 +16,7 @@ for col in ['Expenditures', 'Revenues', 'Indebtedness']:
     df[col] = df[col].replace('[\$,]', '', regex=True).astype(float)
 df['GeoFIPS'] = df['GeoFIPS'].astype(str).str.zfill(5)
 
-df_sankey = pd.read_csv("c:/Users/Admin/Downloads/layer_score.csv")
+df_sankey = pd.read_csv("layer_score.csv")
 df_sankey.columns = [col.strip() for col in df_sankey.columns]
 df_sankey = df_sankey.rename(columns={"normalized_name": "City"})
 
@@ -298,7 +298,7 @@ with tab5:
     st.header("📝 City Score Comparison by Report Category")
 
     # Load data
-    df_city = pd.read_csv("C:/Users/Admin/Downloads/layer_score.csv")
+    df_city = pd.read_csv("layer_score.csv")
     df_city.columns = df_city.columns.str.strip()
 
     # Clean Report Type 1 column (remove trailing spaces)
@@ -399,7 +399,7 @@ with tab6:
     st.header("📦 Report Type vs Feature Score Distribution")
 
     # Load and clean data
-    df_box = pd.read_csv("C:/Users/Admin/Downloads/layer_score.csv")
+    df_box = pd.read_csv("layer_score.csv")
     df_box.columns = df_box.columns.str.strip()
     df_box["Report Type"] = df_box["Report Type"].str.strip()
 
@@ -610,7 +610,7 @@ with tab7:
     st.header("🏙️ City Score Comparison - Climate vs Non-Climate")
 
     # Load and clean data
-    df_city = pd.read_csv("C:/Users/Admin/Downloads/layer_score.csv")
+    df_city = pd.read_csv("layer_score.csv")
     df_city.columns = df_city.columns.str.strip()
     df_city["Report Type 1"] = df_city["Report Type 1"].str.strip()
 
@@ -693,7 +693,7 @@ with tab7:
 with tab8:
     st.header("🏙️ Feature Comparison by Report Type")
 
-    df = pd.read_csv("C:/Users/Admin/Downloads/layer_score.csv")
+    df = pd.read_csv("layer_score.csv")
     df.columns = df.columns.str.strip()
     df["Report Type 1"] = df["Report Type 1"].str.strip()
     df["normalized_name"] = df["normalized_name"].str.strip()
@@ -738,7 +738,7 @@ with tab9:
     import streamlit as st
 
     # Load and clean data
-    df = pd.read_csv("C:/Users/Admin/Downloads/layer_score.csv")
+    df = pd.read_csv("layer_score.csv")
     df.columns = df.columns.str.strip()
     df = df[df["normalized_name"].str.lower() != "chicago"]
 
@@ -824,7 +824,7 @@ with tab10:
     st.header("🌍 Climate Report Type – Skokie & Niles Highlighted")
 
     # Load and clean data
-    df = pd.read_csv("C:/Users/Admin/Downloads/layer_score.csv")
+    df = pd.read_csv("layer_score.csv")
     df.columns = df.columns.str.strip()
     df["Report Type 1"] = df["Report Type 1"].str.strip()
     df["normalized_name"] = df["normalized_name"].str.strip()
